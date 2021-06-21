@@ -9,7 +9,7 @@ Author: ferbcn
 
 import sys
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QListWidget, QMainWindow, QPushButton, QApplication,
-                             QFileDialog, QTextEdit, QLineEdit, QPlainTextEdit, QToolBar, QAction, QCheckBox)
+                             QFileDialog, QTextEdit, QLineEdit, QPlainTextEdit, QToolBar, QAction, QCheckBox, QMessageBox)
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIcon
 
@@ -68,9 +68,8 @@ class Editor(QWidget):
 
     def save_item(self):
         content = self.textbox.toPlainText()
-        filename = "new.txt"
-        new_path = os.path.join(os.path.dirname(self.path), filename)
-        new_path, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "",
+        dir_path = os.path.dirname(self.path)
+        new_path, _ = QFileDialog.getSaveFileName(self, "Save file as ", dir_path,
                                                   "All Files (*);;Text Files (*.txt)")
         print("saving: ", new_path)
         with open(new_path, "w") as output:
@@ -92,7 +91,7 @@ class Editor(QWidget):
                 except UnicodeDecodeError:
                     print(f'reading binary-encoded file: {path}')
                     # print(e, " (not a ascii-encoded unicode string)")
-                    self.open_hex_file(path, content)
+                    self.open_hex_file(path)
                 else:
                     print(f'reading ascii-encoded unicode text file: {path}')
                     self.open_text_file(path, content)
@@ -101,9 +100,14 @@ class Editor(QWidget):
             print("Permission error")
 
     def open_text_file(self, path, lines):
-        print("opening: ", path)
+        print("opening text file: ", path)
         for line in lines:
             self.textbox.insertPlainText(line)
+
+    def open_hex_file(self, path):
+        print("opening binary file: ", path)
+        os.system("open "+path)
+
 
 
 class App(QMainWindow):
@@ -183,6 +187,11 @@ class App(QMainWindow):
         self.urlbar = QLineEdit ()
         self.urlbar.returnPressed.connect (self.open_url)
         navtb.addWidget (self.urlbar)
+
+        del_btn = QAction(QIcon(os.path.join('images', 'cross.png')), "Delete File", self)
+        del_btn.setStatusTip("Delete file")
+        del_btn.triggered.connect(self.delete_file)
+        navtb.addAction(del_btn)
 
         self.dir_listbox = QListWidget()
 #       self.dir_listbox.setMinimumHeightint(int(self.screenH * 0.05))
@@ -301,6 +310,21 @@ class App(QMainWindow):
         self.open_dir (self.home_dir)
         self.update_path (self.home_dir)
         self.add_path_to_history(self.home_dir)
+
+    def delete_file(self):
+        path = self.get_file_path_from_list()
+        if path:
+            reply = QMessageBox.question(self, 'Delete File',
+                                         "Are you sure you want to delete this file? \n\n "+ path, QMessageBox.No |
+                                         QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                print("File DELETED!")
+                os.remove(path)
+                self.open_url()
+            else:
+                print("File NOT deleted!")
+        else:
+            print("No file selected!")
 
     # open a directory from url path
     def open_url(self):
