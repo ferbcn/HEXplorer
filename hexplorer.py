@@ -8,13 +8,98 @@ Author: ferbcn
 """
 
 import sys
-from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QListWidget, QMainWindow, QLineEdit, QPlainTextEdit, QToolBar, QAction, QApplication, QCheckBox)
+from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QListWidget, QMainWindow, QPushButton,
+                             QTextEdit, QLineEdit, QPlainTextEdit, QToolBar, QAction, QApplication, QCheckBox)
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIcon
-from PyQt5 import QtCore
 
 import os
 import time
+
+class Editor(QWidget):
+    def __init__(self, path):
+        super().__init__()
+        QMainWindow.__init__ (self, None)
+
+        self.path = path
+        self.title = 'Editor'
+        self.left = 10
+        self.top = 10
+        self.width = 640
+        self.height = 480
+        self.initUI()
+        self.open_file(self.path)
+
+    def initUI(self):
+        self.setWindowTitle(self.title)
+        self.setGeometry(self.left, self.top, self.width, self.height)
+
+        self.textbox = QTextEdit(self)
+        self.textbox.resize(self.width, self.height)
+
+        saveButton = QPushButton("Save")
+        saveButton.setMinimumHeight(20)
+        saveButton.setMaximumWidth(90)
+        clrButton = QPushButton("Clear")
+        clrButton.setMinimumHeight(20)
+        clrButton.setMaximumWidth(90)
+        resetButton = QPushButton("Reset")
+        resetButton.setMinimumHeight(20)
+        resetButton.setMaximumWidth(90)
+
+        saveButton.clicked.connect(self.save_item)
+        clrButton.clicked.connect(self.clear_text)
+        resetButton.clicked.connect(self.reset_item)
+
+        hbox = QHBoxLayout()
+        hbox.addWidget(saveButton)
+        hbox.addWidget(clrButton)
+        hbox.addWidget(resetButton)
+        hbox.setContentsMargins(0, 0, 0, 0)
+
+        vbox = QVBoxLayout()
+        vbox.addWidget(self.textbox)
+        vbox.addLayout(hbox)
+        vbox.setContentsMargins(5, 5, 5, 5)
+
+        self.setLayout(vbox)
+
+        self.show()
+
+    def save_item(self):
+        pass
+
+    def clear_text(self):
+        self.textbox.clear()
+
+    def reset_item(self):
+        self.open_file(self.path)
+
+    def open_file(self, path):
+        print("opening: ", path)
+        try:
+            with open(path, "r") as f:
+                try:
+                    content = f.readlines()
+                except UnicodeDecodeError:
+                    print(f'reading binary-encoded file: {path}')
+                    # print(e, " (not a ascii-encoded unicode string)")
+                    self.open_hex_file(path, content)
+                else:
+                    print(f'reading ascii-encoded unicode text file: {path}')
+                    self.open_text_file(path, content)
+            f.close()
+        except PermissionError:
+            print("Permission error")
+
+    def open_text_file(self, path, lines):
+        print("opening: ", path)
+        for line in lines:
+            self.textbox.insertPlainText(line)
+
+    def save_file(self, path):
+        print("saving: ", path)
+
 
 class App(QMainWindow):
 
@@ -37,7 +122,6 @@ class App(QMainWindow):
         self.initUI()
 
     def initUI(self):
-
         #QMainWindow.__init__(self, None, QtCore.Qt.WindowStaysOnTopHint)
 
         # get screen size and set app size
@@ -92,7 +176,7 @@ class App(QMainWindow):
         navtb.addWidget(self.preview_check)
 
         self.urlbar = QLineEdit ()
-        self.urlbar.returnPressed.connect (self.file_run)
+        self.urlbar.returnPressed.connect (self.open_url)
         navtb.addWidget (self.urlbar)
 
         self.dir_listbox = QListWidget()
@@ -110,11 +194,13 @@ class App(QMainWindow):
         self.files_listbox.setFocusPolicy (1)  # remove blue frame when window is selected yeaaaah!
 
         self.files_attributes_listbox = QListWidget ()
-        self.files_attributes_listbox.setFixedHeight(int(self.screenH * 0.06))
+        self.files_attributes_listbox.setFixedHeight(int(self.screenH * 0.07))
         self.files_attributes_listbox.setMinimumWidth (int(self.screenW * 0.15))
         self.files_attributes_listbox.setFocusPolicy (1)  # remove blue frame when window is selected yeaaaah!
 
         self.preview_textbox = QPlainTextEdit (self)
+        self.preview_textbox.setReadOnly(True)
+        #self.preview_textbox.setDisabled(True)
 
         viewbox = QVBoxLayout ()
         viewbox.addWidget (self.files_attributes_listbox)
@@ -188,12 +274,6 @@ class App(QMainWindow):
             self.show_hidden_files = False
         self.open_dir(self.current_dir)
 
-    def file_run(self):
-        items = self.files_listbox.selectedItems ()
-        if not len(items) == 0:
-            file = items[0].text ()
-            path = self.urlbar.text ()
-            os.system ("open " + os.path.join(path,file))
 
     def go_back(self):
         print("Back History!")
@@ -315,7 +395,7 @@ class App(QMainWindow):
                     #print(e, " (not a ascii-encoded unicode string)")
                     self.show_hex_preview(path)
                 else:
-                    print (f'reading ascii-encoded unicode string file: {path}')
+                    print (f'reading ascii-encoded unicode text file: {path}')
                     self.show_text_preview (content)
             f.close ()
         except PermissionError:
@@ -373,10 +453,20 @@ class App(QMainWindow):
 
             #print(f"filesize: {filesize_bytes} bytes")
 
+    def file_run(self):
+        items = self.files_listbox.selectedItems ()
+        if not len(items) == 0:
+            file = items[0].text ()
+            path = self.urlbar.text ()
+            file_path = os.path.join(path, file)
+            self.editor = Editor(file_path)
+            #os.system ("open " + file_path)
+
     def clear_all (self):
         self.dir_listbox.clear ()
         self.files_listbox.clear ()
         self.files_attributes_listbox.clear ()
+        self.preview_textbox.clear()
 
 
 if __name__ == '__main__':
