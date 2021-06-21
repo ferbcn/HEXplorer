@@ -8,8 +8,8 @@ Author: ferbcn
 """
 
 import sys
-from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QListWidget, QMainWindow, QPushButton,
-                             QTextEdit, QLineEdit, QPlainTextEdit, QToolBar, QAction, QApplication, QCheckBox)
+from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QListWidget, QMainWindow, QPushButton, QApplication,
+                             QFileDialog, QTextEdit, QLineEdit, QPlainTextEdit, QToolBar, QAction, QCheckBox)
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIcon
 
@@ -67,7 +67,15 @@ class Editor(QWidget):
         self.show()
 
     def save_item(self):
-        pass
+        content = self.textbox.toPlainText()
+        filename = "new.txt"
+        new_path = os.path.join(os.path.dirname(self.path), filename)
+        new_path, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "",
+                                                  "All Files (*);;Text Files (*.txt)")
+        print("saving: ", new_path)
+        with open(new_path, "w") as output:
+            output.writelines(content)
+
 
     def clear_text(self):
         self.textbox.clear()
@@ -96,9 +104,6 @@ class Editor(QWidget):
         print("opening: ", path)
         for line in lines:
             self.textbox.insertPlainText(line)
-
-    def save_file(self, path):
-        print("saving: ", path)
 
 
 class App(QMainWindow):
