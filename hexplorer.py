@@ -212,12 +212,14 @@ class App(QMainWindow):
         self.files_listbox.setAlternatingRowColors (True)
         self.files_listbox.setFocusPolicy (1)  # remove blue frame when window is selected yeaaaah!
 
+        """
         self.files_info_listbox = QListWidget()
         self.files_info_listbox.setMinimumHeight(int(self.screenH * 0.05))
         self.files_info_listbox.setMinimumWidth(int(self.screenW * 0.03))
         self.files_info_listbox.setMaximumWidth(int(self.screenW * 0.05))
         self.files_info_listbox.setAlternatingRowColors(True)
         self.files_info_listbox.setFocusPolicy(1)  # remove blue fram
+        """
 
         self.files_attributes_listbox = QListWidget ()
         self.files_attributes_listbox.setFixedHeight(int(self.screenH * 0.07))
@@ -235,7 +237,7 @@ class App(QMainWindow):
         navbox = QHBoxLayout ()
         navbox.addWidget(self.dir_listbox)
         navbox.addWidget (self.files_listbox)
-        navbox.addWidget(self.files_info_listbox)
+        #navbox.addWidget(self.files_info_listbox)
         navbox.addLayout(viewbox)
         navbox.setContentsMargins(0, 0, 0, 0)
 
@@ -382,6 +384,7 @@ class App(QMainWindow):
                 files = reversed(files)
             file_count = 0
             for file in files:
+                """
                 try:
                     file_obj = os.stat(os.path.join(path, file))
                     file_size = file_obj.st_size
@@ -391,11 +394,12 @@ class App(QMainWindow):
                 except PermissionError:
                     print("Permission Error")
                     file_size = 0
+                """
                 if file[0] == "." and not self.show_hidden_files:
                     pass
                 else:
                     self.files_listbox.insertItem(l_files, file)
-                    self.files_info_listbox.insertItem(l_files, file_size_info)
+                    #self.files_info_listbox.insertItem(l_files, file_size_info)
             break
 
     def dir_onselect (self):
@@ -520,7 +524,7 @@ class App(QMainWindow):
     def clear_all (self):
         self.dir_listbox.clear ()
         self.files_listbox.clear ()
-        self.files_info_listbox.clear()
+        #self.files_info_listbox.clear()
         self.files_attributes_listbox.clear ()
         self.preview_textbox.clear()
 
