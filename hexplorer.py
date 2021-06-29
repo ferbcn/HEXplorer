@@ -9,7 +9,7 @@ Author: ferbcn
 
 import sys
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QListWidget, QMainWindow, QPushButton, QApplication,
-                             QFileDialog, QTextEdit, QLineEdit, QPlainTextEdit, QToolBar, QAction, QCheckBox, QMessageBox)
+                             QFileDialog, QTextEdit, QLineEdit, QPlainTextEdit, QToolBar, QAction, QCheckBox, QMessageBox, QTableWidget, QTableWidgetItem)
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIcon
 
@@ -17,14 +17,15 @@ import os
 import time
 
 class Editor(QWidget):
-    def __init__(self, path):
+    def __init__(self, parent, path, x_pos, y_pos):
         super().__init__()
-        QMainWindow.__init__ (self, None)
+        #QMainWindow.__init__ (self, None)
+        self.parent = parent
 
         self.path = path
         self.title = 'Editor'
-        self.left = 10
-        self.top = 10
+        self.left = x_pos
+        self.top = y_pos
         self.width = 640
         self.height = 480
         self.initUI()
@@ -74,7 +75,7 @@ class Editor(QWidget):
         print("saving: ", new_path)
         with open(new_path, "w") as output:
             output.writelines(content)
-
+        self.parent.open_url()
 
     def clear_text(self):
         self.textbox.clear()
@@ -108,6 +109,9 @@ class Editor(QWidget):
         print("opening binary file: ", path)
         os.system("open "+path)
 
+    def closeEvent(self, event):
+        print("closing editor")
+        self.parent.open_url()
 
 
 class App(QMainWindow):
@@ -128,17 +132,18 @@ class App(QMainWindow):
         self.nav_history = []
         self.nav_history_index = -1
 
+        # get screen size and set app size
+        screen_resolution = app.desktop().screenGeometry()
+        self.screenW, self.screenH = screen_resolution.width(), screen_resolution.height()
+        self.window_width = int(self.screenW/2)
+        self.window_height = int(self.screenH * 0.5)
+
         self.initUI()
 
     def initUI(self):
         #QMainWindow.__init__(self, None, QtCore.Qt.WindowStaysOnTopHint)
-
-        # get screen size and set app size
-        screen_resolution = app.desktop().screenGeometry()
-        self.screenW, self.screenH = screen_resolution.width(), screen_resolution.height()
-
         # set position
-        self.setGeometry(int(self.screenW * 0.1), 0, int(self.screenW/2), int(self.screenH * 0.5))
+        self.setGeometry(100, 100, self.window_width, self.window_height)
         self.setWindowTitle('HeXplorer')
 
         # File Menu
@@ -207,6 +212,13 @@ class App(QMainWindow):
         self.files_listbox.setAlternatingRowColors (True)
         self.files_listbox.setFocusPolicy (1)  # remove blue frame when window is selected yeaaaah!
 
+        self.files_info_listbox = QListWidget()
+        self.files_info_listbox.setMinimumHeight(int(self.screenH * 0.05))
+        self.files_info_listbox.setMinimumWidth(int(self.screenW * 0.03))
+        self.files_info_listbox.setMaximumWidth(int(self.screenW * 0.05))
+        self.files_info_listbox.setAlternatingRowColors(True)
+        self.files_info_listbox.setFocusPolicy(1)  # remove blue fram
+
         self.files_attributes_listbox = QListWidget ()
         self.files_attributes_listbox.setFixedHeight(int(self.screenH * 0.07))
         self.files_attributes_listbox.setMinimumWidth (int(self.screenW * 0.15))
@@ -223,6 +235,7 @@ class App(QMainWindow):
         navbox = QHBoxLayout ()
         navbox.addWidget(self.dir_listbox)
         navbox.addWidget (self.files_listbox)
+        navbox.addWidget(self.files_info_listbox)
         navbox.addLayout(viewbox)
         navbox.setContentsMargins(0, 0, 0, 0)
 
@@ -352,6 +365,7 @@ class App(QMainWindow):
         self.dir_listbox.insertItem (0, '..')
         l_dirs = self.dir_listbox.count()
         l_files = self.files_listbox.count ()
+        #l_files = self.files_listbox.rowCount()
         for root, dirs, files in os.walk (path):
             # update directories
             dirs.sort(key=str.casefold) #ignore lower upper case ordering
@@ -366,13 +380,23 @@ class App(QMainWindow):
             files.sort(key=str.casefold)
             if not self.sort_invert:
                 files = reversed(files)
+            file_count = 0
             for file in files:
+                try:
+                    file_obj = os.stat(os.path.join(path, file))
+                    file_size = file_obj.st_size
+                    file_size_info = str(file_size) + " bytes"
+                except FileNotFoundError:
+                    file_size = 0
+                except PermissionError:
+                    print("Permission Error")
+                    file_size = 0
                 if file[0] == "." and not self.show_hidden_files:
                     pass
                 else:
-                    self.files_listbox.insertItem (l_files, file)
+                    self.files_listbox.insertItem(l_files, file)
+                    self.files_info_listbox.insertItem(l_files, file_size_info)
             break
-
 
     def dir_onselect (self):
         self.last_file = None
@@ -488,12 +512,15 @@ class App(QMainWindow):
             file = items[0].text ()
             path = self.urlbar.text ()
             file_path = os.path.join(path, file)
-            self.editor = Editor(file_path)
-            #os.system ("open " + file_path)
+            widget = self.geometry()
+            x_pos = self.window_width - widget.width()
+            y_pos = self.window_height - widget.height()
+            self.editor = Editor(self, file_path, x_pos+self.window_width, y_pos)
 
     def clear_all (self):
         self.dir_listbox.clear ()
         self.files_listbox.clear ()
+        self.files_info_listbox.clear()
         self.files_attributes_listbox.clear ()
         self.preview_textbox.clear()
 
