@@ -5,6 +5,8 @@
 PyQt File Explorer for Text and Binary Files
 Dependencies: PyQt5
 Author: ferbcn
+
+TODO: editing binary files in hexadecimal mode
 """
 
 import sys
@@ -72,10 +74,11 @@ class Editor(QWidget):
         dir_path = os.path.dirname(self.path)
         new_path, _ = QFileDialog.getSaveFileName(self, "Save file as ", dir_path,
                                                   "All Files (*);;Text Files (*.txt)")
-        print("saving: ", new_path)
-        with open(new_path, "w") as output:
-            output.writelines(content)
-        self.parent.open_url()
+        if new_path:
+            print("saving: ", new_path)
+            with open(new_path, "w") as output:
+                output.writelines(content)
+            self.parent.open_url()
 
     def clear_text(self):
         self.textbox.clear()
