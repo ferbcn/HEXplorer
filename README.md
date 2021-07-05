@@ -1,2 +1,3 @@
 # HEXplorer
-text and binary file explorer
+Text and binary-hex file explorer
+
